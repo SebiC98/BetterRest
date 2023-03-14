@@ -28,39 +28,45 @@ struct ContentView: View {
     var body: some View {
         NavigationView{
             Form{
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("When do you want to wake up?")
-                        .font(.headline)
+                Section() {
+                   
+                       
                     
                     DatePicker("Please enter a time", selection: $wakeUp, displayedComponents: .hourAndMinute)
                         .labelsHidden()
-                }
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Desired amount of sleep")
+                }header: {
+                    Text("When do you want to wake up?")
                         .font(.headline)
+                }
+                Section() {
                     
                     Stepper("\(sleepAmount.formatted()) hours", value: $sleepAmount, in: 4...12, step: 0.25)
+                }header: {
+                    Text("Desired amount of sleep")
+                        .font(.headline)
                 }
-                VStack(alignment: .leading, spacing: 0) {
+                Section() {
+                    Picker("Daily coffee intake", selection: $coffeeAmount) {
+                        ForEach(1...20, id: \.self) { ammount in
+                            Text(ammount == 1 ? "1 cup" : "\(ammount) cups")
+                                    }
+                                }
+                } header: {
                     Text("Daily coffee intake")
                         .font(.headline)
-                    
-                    Stepper(coffeeAmount == 1 ? "1 cup" : "\(coffeeAmount) cups", value: $coffeeAmount, in: 1...20)
                 }
+                Section(header: Text("Your ideal bedtime is")) {
+                                    Text(calculteBedtime())
+                                        .font(.largeTitle)
+                                }
             }
             .navigationTitle("BetterRest")
-            .toolbar{
-                Button("Calculate", action: calculteBedtime)
-            }
-            .alert(alertTitle, isPresented: $showingAlert){
-                Button("OK"){}
-            }message: {
-                Text(alertMessage)
-            }
+            
+          
         }
     }
     
-    func calculteBedtime(){
+    func calculteBedtime() -> String{
         do{
             let config = MLModelConfiguration()
             let model = try SleepCalculator(configuration: config)
@@ -72,12 +78,14 @@ struct ContentView: View {
             let prediction = try model.prediction(wake: Double(hour + minute), estimatedSleep: sleepAmount, coffee: Double(coffeeAmount))
             
             let sleepTime = wakeUp - prediction.actualSleep
-            alertTitle = "Your ideal bedtime is..."
-            alertMessage = sleepTime.formatted(date: .omitted, time:.shortened)
+            
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            
+            return formatter.string(from: sleepTime)
             
         }catch{
-            alertTitle = "Error"
-            alertMessage = "Sorry, there was a problem calculating your bedtime."
+            return "Sorry, there was a problem calculating your bedtime."
         }
         showingAlert = true
     }
